@@ -9,12 +9,14 @@
 1つのファイルを見た時に「このコンポーネントは何をやっているんだ？」と理解するのが難しくなります。
 
 ### アプローチ
+
 - **ビジネスロジックは外部ファイル（Libsなど）へ切り出す**
 - コンポーネント内では、切り出した関数を `useMemo` や `useCallback` で呼び出すだけの形にする
 
 ### サンプルコード
 
 #### 💩 BAD: コンポーネント内にロジックが混在
+
 ```tsx
 const UserList = ({ users }: { users: User[] }) => {
   // ↓↓↓ ここに数十行〜百行規模のロジックが直接書かれていると想像してください ↓↓↓
@@ -48,6 +50,7 @@ const UserList = ({ users }: { users: User[] }) => {
 ```
 
 #### ✨ GOOD: ロジックをカスタムフックや関数に分離
+
 ```tsx
 // useUserLogic.ts などに定義
 const useActiveUsers = (users: User[]) => {
@@ -61,13 +64,18 @@ const UserList = ({ users }: { users: User[] }) => {
 
   return (
     <ul>
-      {activeUsers.map(user => <li key={user.id}>{user.name} ({user.rank})</li>)}
+      {activeUsers.map((user) => (
+        <li key={user.id}>
+          {user.name} ({user.rank})
+        </li>
+      ))}
     </ul>
   );
 };
 ```
 
 ### メリット
+
 - コンポーネントの見通しが良くなる（コード量が数行で済むことも）
 - ロジック単体でテストが可能になる（テスタビリティの向上）
 
@@ -76,12 +84,14 @@ const UserList = ({ users }: { users: User[] }) => {
 ファイルが長すぎると、全体を把握するだけで疲れてしまいます。
 
 ### 目安
+
 - **多くても 100行〜150行**
 - 長くても 200行程度に収める
 
 ### サンプルコード
 
 #### 💩 BAD: 巨大なコンポーネント
+
 ```tsx
 const ProductPage = () => {
   // ... 50行にわたるState定義 ...
@@ -89,21 +99,16 @@ const ProductPage = () => {
 
   return (
     <div>
-      <header>
-        {/* ... 50行のヘッダー実装 ... */}
-      </header>
-      <main>
-        {/* ... 100行のメインコンテンツ実装 ... */}
-      </main>
-      <dialog>
-         {/* ... 30行のダイアログ実装 ... */}
-      </dialog>
+      <header>{/* ... 50行のヘッダー実装 ... */}</header>
+      <main>{/* ... 100行のメインコンテンツ実装 ... */}</main>
+      <dialog>{/* ... 30行のダイアログ実装 ... */}</dialog>
     </div>
   );
 };
 ```
 
 #### ✨ GOOD: 責務ごとにコンポーネントを分割
+
 ```tsx
 const ProductPage = () => {
   const { product, isLoading } = useProductData();
@@ -121,6 +126,7 @@ const ProductPage = () => {
 ```
 
 ### メリット
+
 - 影響範囲が見えやすくなり、不具合修正や機能追加が容易になる
 
 ## 3. アンチパターンを避ける（特に useEffect）
@@ -128,11 +134,13 @@ const ProductPage = () => {
 React Hooks、特に `useEffect` の使い方は可読性とバグの温床になりがちです。
 
 ### 避けるべき実装
+
 - `useEffect` 内で依存配列を指定し、連鎖的にStateを更新する処理
   - データの流れが追いづらくなります。
   - 基本的にはイベントハンドラ（`onChange` など）で処理を行うべきです。
 
 ### 推奨する実装
+
 - **計算で導出できる値は `useMemo` を使う**
   - 例：ユーザー名の加工などはStateにせず、レンダリング時に計算（メモ化）する。
 - 参考：[You Might Not Need useEffect](https://react.dev/learn/you-might-not-need-an-effect)
@@ -140,9 +148,10 @@ React Hooks、特に `useEffect` の使い方は可読性とバグの温床に�
 ### サンプルコード
 
 #### 💩 BAD: useEffectでStateを同期しようとする
+
 ```tsx
 const UserProfile = ({ firstName, lastName }: Props) => {
-  const [fullName, setFullName] = useState('');
+  const [fullName, setFullName] = useState("");
 
   // Propsが変わるたびに再レンダリング→Effect実行→State更新→再レンダリング...
   useEffect(() => {
@@ -154,6 +163,7 @@ const UserProfile = ({ firstName, lastName }: Props) => {
 ```
 
 #### ✨ GOOD: レンダリング中に計算（必要ならuseMemo）
+
 ```tsx
 const UserProfile = ({ firstName, lastName }: Props) => {
   // Stateを使わず、レンダリング時に計算する
@@ -168,6 +178,7 @@ const UserProfile = ({ firstName, lastName }: Props) => {
 `return` の中（JSX）が複雑だと、UIの構造が直感的に分かりません。
 
 ### ポイント
+
 - **JSX内に複雑なロジックを書かない**
   - `map` や `if` のネストで20行以上になるようなブロックは、別のコンポーネントに切り出す。
   - 上位コンポーネントは「どのコンポーネントをどの順番で表示するか」だけに集中する。
@@ -178,14 +189,13 @@ const UserProfile = ({ firstName, lastName }: Props) => {
 ### サンプルコード
 
 #### 💩 BAD: JSX内にロジックとネストが埋め込まれている
+
 ```tsx
 return (
   <div className="page-container">
     <Header user={user} />
     {/* ヘッダーの下にも直接ロジックでバナー出し分けなどを書いている */}
-    {showBanner && !isMobile && (
-      <div className="banner">Special Campaign!</div>
-    )}
+    {showBanner && !isMobile && <div className="banner">Special Campaign!</div>}
 
     {isLoading ? (
       <Spinner />
@@ -193,42 +203,44 @@ return (
       <div className="main-content">
         {/* サイドナビの表示ロジックもここに混入 */}
         <aside>
-           {categories.map(cat => (
-             cat.isActive ? <div key={cat.id}>{cat.name}</div> : null
-           ))}
+          {categories.map((cat) =>
+            cat.isActive ? <div key={cat.id}>{cat.name}</div> : null,
+          )}
         </aside>
 
         <main>
           <ul className="item-list">
-            {items.map(item => {
+            {items.map((item) => {
               // mapの中で変数定義や複雑な分岐を行うと可読性が著しく低下する
               if (item.isHidden) return null;
-              const statusLabel = item.stock > 0 ? 'In Stock' : 'Out of Stock';
+              const statusLabel = item.stock > 0 ? "In Stock" : "Out of Stock";
 
               return (
-                 <li key={item.id} onClick={() => handleClick(item)}>
-                   <div className="item-header">
-                     <h3>{item.title}</h3>
-                     <span className="status">{statusLabel}</span>
-                   </div>
+                <li key={item.id} onClick={() => handleClick(item)}>
+                  <div className="item-header">
+                    <h3>{item.title}</h3>
+                    <span className="status">{statusLabel}</span>
+                  </div>
 
-                   {/* さらにネストされたmap繰り返し */}
-                   {item.tags.length > 0 && (
-                     <div className="tags">
-                       {item.tags.map(tag => (
-                         <span key={tag} className="tag">{tag}</span>
-                       ))}
-                     </div>
-                   )}
+                  {/* さらにネストされたmap繰り返し */}
+                  {item.tags.length > 0 && (
+                    <div className="tags">
+                      {item.tags.map((tag) => (
+                        <span key={tag} className="tag">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
-                   {/* 条件付きレンダリングの塊 */}
-                   {item.hasDetails && (
-                     <div className="details">
-                       <p>{item.description}</p>
-                       {item.relatedUrl && <a href={item.relatedUrl}>Link</a>}
-                     </div>
-                   )}
-                 </li>
+                  {/* 条件付きレンダリングの塊 */}
+                  {item.hasDetails && (
+                    <div className="details">
+                      <p>{item.description}</p>
+                      {item.relatedUrl && <a href={item.relatedUrl}>Link</a>}
+                    </div>
+                  )}
+                </li>
               );
             })}
           </ul>
@@ -241,6 +253,7 @@ return (
 ```
 
 #### ✨ GOOD: 構成要素ごとにコンポーネント化
+
 ```tsx
 // 親コンポーネント：配置に集中できる
 if (isLoading) return <Spinner />;
@@ -255,7 +268,7 @@ return (
       <CategorySidebar categories={categories} />
       <main>
         <ul className="item-list">
-          {items.map(item => (
+          {items.map((item) => (
             <ListItem key={item.id} item={item} onClick={handleClick} />
           ))}
         </ul>
@@ -286,6 +299,7 @@ const ListItem = ({ item, onClick }: ListItemProps) => {
 トップレベルや親となるコンポーネントは「オーケストラ」の指揮者のような役割に徹するのが理想だと考えています。
 
 ### 役割
+
 - APIの呼び出し（`useQuery` 等）
 - 定数やメモ化された値の準備
 - 子コンポーネントの配置
@@ -296,31 +310,32 @@ const ListItem = ({ item, onClick }: ListItemProps) => {
 ### サンプルコード
 
 #### 💩 BAD: データ取得と表示ロジックの混在
+
 ```tsx
 const UserDashboard = () => {
-  const { data: userData } = useSWR('/api/user');
-  const { data: postsData } = useSWR('/api/posts');
+  const { data: userData } = useSWR("/api/user");
+  const { data: postsData } = useSWR("/api/posts");
 
   // ↓↓↓ ここに数百行規模のデータ加工ロジックが書かれていると想像してください ↓↓↓
   // ...
 
   // アクティブユーザー判定や権限計算など、本来切り出すべき関数が並ぶ
   const userStatus = useMemo(() => {
-     if (!userData) return null;
-     const score = calculateUserScore(userData);
-     const rank = determineUserRank(score);
-     const badges = getUserBadges(userData.history);
-     // ... ごにょごにょとした計算が続く ...
-     return { score, rank, badges };
+    if (!userData) return null;
+    const score = calculateUserScore(userData);
+    const rank = determineUserRank(score);
+    const badges = getUserBadges(userData.history);
+    // ... ごにょごにょとした計算が続く ...
+    return { score, rank, badges };
   }, [userData]);
 
   // 推奨コンテンツの選定ロジックなども混ざっている
   const recommendedPosts = useMemo(() => {
-     if (!postsData || !userData) return [];
-     const filtered = filterPostsByInterests(postsData, userData.interests);
-     const sorted = sortPostsByDate(filtered);
-     // ... さらにごにょごにょ ...
-     return sorted.slice(0, 5);
+    if (!postsData || !userData) return [];
+    const filtered = filterPostsByInterests(postsData, userData.interests);
+    const sorted = sortPostsByDate(filtered);
+    // ... さらにごにょごにょ ...
+    return sorted.slice(0, 5);
   }, [postsData, userData]);
 
   if (!userData) return <div>Loading...</div>;
@@ -329,11 +344,13 @@ const UserDashboard = () => {
     <div className="dashboard">
       <h1>Welcome, {userData.name}</h1>
       <div className="stats">
-         {/* ...細かい表示実装... */}
-         <span>Rank: {userStatus?.rank}</span>
+        {/* ...細かい表示実装... */}
+        <span>Rank: {userStatus?.rank}</span>
       </div>
       <div className="posts">
-         {recommendedPosts.map(p => <div key={p.id}>{p.title}</div>)}
+        {recommendedPosts.map((p) => (
+          <div key={p.id}>{p.title}</div>
+        ))}
       </div>
     </div>
   );
@@ -341,6 +358,7 @@ const UserDashboard = () => {
 ```
 
 #### ✨ GOOD: コンテナとプレゼンテーションの分離
+
 ```tsx
 // オーケストレーション（Container）
 const UserDashboardContainer = () => {
@@ -359,6 +377,7 @@ const UserDashboardContainer = () => {
 `useQuery` などで取得したデータに含まれる `undefined` や `null` の扱いについて。
 
 ### アプローチ
+
 - **上位コンポーネントでデータ有無を判定する**
   - データがない場合（null/undefined/loading）は、早期リターンや専用の表示（NoMatchなど）を行う。
 - **下位コンポーネントは「データがある前提」で作る**
@@ -367,6 +386,7 @@ const UserDashboardContainer = () => {
 ### サンプルコード
 
 #### 💩 BAD: 下位コンポーネントで毎回 null チェック
+
 ```tsx
 // Propsの型が undefined 許容になっている
 const UserInfo = ({ user }: { user?: User | undefined }) => {
@@ -378,6 +398,7 @@ const UserInfo = ({ user }: { user?: User | undefined }) => {
 ```
 
 #### ✨ GOOD: 親でガードし、子はデータがある前提
+
 ```tsx
 // 親コンポーネント
 const Parent = () => {
